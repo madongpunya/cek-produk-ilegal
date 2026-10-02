@@ -6,17 +6,18 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function POST(request) {
   try {
-    const { productName, location, description, reporterName } = await request.json();
+    const body = await request.json();
+    const { productName, location, description, reporterName } = body;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      return NextResponse.json({ error: 'Konfigurasi Supabase belum lengkap' }, { status: 500 });
+      return NextResponse.json({ error: 'Konfigurasi Supabase belum lengkap.' }, { status: 500 });
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Menyimpan data laporan ke tabel 'reports' di Supabase
+    // Menyimpan data dari form ke tabel 'reports' di Supabase
     const { data, error } = await supabase
-      .from('reports')
+      .from('reports') // Ubah menjadi 'report' jika nama tabel Anda tidak pakai 's'
       .insert([
         { 
           product_name: productName, 
@@ -27,7 +28,7 @@ export async function POST(request) {
       ]);
 
     if (error) {
-      console.error("Gagal menyimpan laporan:", error);
+      console.error("Gagal insert ke Supabase:", error);
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
@@ -35,6 +36,6 @@ export async function POST(request) {
 
   } catch (err) {
     console.error("Kesalahan server:", err);
-    return NextResponse.json({ error: 'Gagal memproses laporan' }, { status: 500 });
+    return NextResponse.json({ error: 'Gagal memproses laporan server' }, { status: 500 });
   }
 }
