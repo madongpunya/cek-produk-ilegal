@@ -47,11 +47,12 @@ export default function ScanPage() {
       const dataUrl = canvas.toDataURL('image/jpeg');
       setImgDataUrl(dataUrl);
 
-      await sendQueryToAPI();
+      // Kirim nilai searchTerm yang sedang diketik secara langsung ke fungsi API
+      await sendQueryToAPI(searchTerm);
     }
   };
 
-  const sendQueryToAPI = async () => {
+  const sendQueryToAPI = async (keyword) => {
     setScanning(true);
     setResult(null);
 
@@ -59,7 +60,7 @@ export default function ScanPage() {
       const response = await fetch('/api/match-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ searchTerm })
+        body: JSON.stringify({ searchTerm: keyword })
       });
 
       const resData = await response.json();
@@ -96,13 +97,13 @@ export default function ScanPage() {
 
       <div className="flex-grow flex flex-col items-center justify-center p-4 max-w-md mx-auto w-full space-y-4">
         
-        {/* Kolom Input Teks untuk Konsistensi Pencarian */}
+        {/* Kolom Input Teks */}
         {!imgDataUrl && (
           <div className="w-full bg-slate-800 p-3 rounded-xl border border-slate-700 flex items-center gap-2 shadow-md">
             <Search className="w-5 h-5 text-slate-400 flex-shrink-0" />
             <input 
               type="text" 
-              placeholder="Ketik nama produk di database (cth: Minyak Gosok)" 
+              placeholder="Ketik nama produk (cth: Minyak Gosok)" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-transparent text-sm text-white placeholder-slate-400 focus:outline-none"
