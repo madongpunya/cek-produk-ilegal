@@ -8,10 +8,7 @@ const supabase = createClient(
 
 export async function POST(request) {
   try {
-    const body = await request.json();
-    console.log("Data yang diterima dari frontend:", body); // Cek terminal VS Code nanti
-
-    const searchTerm = body.searchTerm;
+    const { searchTerm } = await request.json();
 
     if (!searchTerm || searchTerm.trim() === '') {
       return NextResponse.json({
@@ -21,29 +18,33 @@ export async function POST(request) {
       });
     }
 
-    // Query ke tabel products di Supabase
+    // Mengambil data dari tabel 'product' (tanpa 's') di Supabase
     const { data: products, error } = await supabase
-      .from('products')
+      .from('product')
       .select('*')
       .ilike('product_name', `%${searchTerm.trim()}%`);
 
     if (error) {
-      console.error("Error dari Supabase:", error);
-      return NextResponse.json({ status: 'ilegal', name: 'Database Error', message: error.message });
+      console.error("Supabase Error:", error);
+      return NextResponse.json({ 
+        status: 'ilegal', 
+        name: 'Database Error', 
+        message: error.message 
+      });
     }
 
     if (!products || products.length === 0) {
       return NextResponse.json({
         status: 'ilegal',
-        name: 'Produk Tidak Ditemukan',
-        message: `Kata kunci "${searchTerm}" tidak ada di database.`
+        name: 'Produk Tidak Ditemukan / Ilegal',
+        message: `Produk dengan kata kunci "${searchTerm}" tidak terdaftar di database.`
       });
     }
 
     const matchedProduct = products[0];
 
     return NextResponse.json({
-      status: matchedProduct.status,
+      status: matchedProduct.status, // Sesuai data di database ('ilegal' atau 'legal')
       name: matchedProduct.product_name,
       message: matchedProduct.description || 'Status perizinan terverifikasi.',
       referenceImage: matchedProduct.image_url
