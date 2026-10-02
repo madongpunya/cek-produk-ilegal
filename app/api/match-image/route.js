@@ -1,60 +1,76 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function POST(request) {
   try {
     const { searchTerm } = await request.json();
 
-    if (!searchTerm || searchTerm.trim() === '') {
+    if (!supabaseUrl || !supabaseAnonKey) {
       return NextResponse.json({
         status: 'ilegal',
-        name: 'Nama Produk Kosong',
-        message: 'Mohon ketik nama produk pada kolom pencarian.'
+        name: 'Konfigurasi Error',
+        message: 'Variabel lingkungan Supabase belum terbaca di server.'
       });
     }
 
-    // Mengambil kata pertama dari input (misal: "Minyak" dari "Minyak Gosok Cap Bunga Kelor")
-    // agar pencarian di database lebih mudah cocok.
-    const keyword = searchTerm.trim().split(' ')[0];
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+    // Ambil seluruh data dari tabel 'product' terlebih dahulu untuk diperiksa manual
     const { data: products, error } = await supabase
       .from('product')
-      .select('*')
-      .ilike('product_name', `%${keyword}%`);
+      .select('*');
 
     if (error) {
-      console.error("Supabase Error:", error);
-      return NextResponse.json({ 
-        status: 'ilegal', 
-        name: 'Database Error', 
-        message: error.message 
+      return NextResponse.json({
+        status: 'ilegal',
+        name: 'Database Error',
+        message: error.message
       });
     }
 
     if (!products || products.length === 0) {
       return NextResponse.json({
         status: 'ilegal',
-        name: 'Produk Tidak Ditemukan / Ilegal',
-        message: `Produk dengan kata kunci "${searchTerm}" tidak terdaftar di database.`
+        name: 'Tabel Kosong',
+        message: 'Tidak ada data sama sekali di dalam tabel product Supabase.'
       });
     }
 
-    const matchedProduct = products[0];
+    // Jika pengguna mengetik kata kunci, lakukan pencarian yang fleksibel
+    let matchedProduct = null;
+    if (searchTerm && searchTerm.trim() !== '') {
+      const keyword = searchTerm.trim().toLowerCase();
+      matchedProduct = products.find(p => 
+        p.product_name && p.product_name.toLowerCase().includes(keyword)
+      );
+    } else {
+      // Jika kosong, ambil data pertama sebagai sampel
+      matchedProduct = products[0];
+    }
+
+    if (!matchedProduct) {
+      return NextResponse.json({
+        status: 'ilegal',
+        name: 'Produk Tidak Ditemukan',
+        message: `Kata kunci "${searchTerm}" tidak cocok dengan data di database.`
+      });
+    }
 
     return NextResponse.json({
-      status: matchedProduct.status,
+      status: matchedProduct.status, // 'legal' atau 'ilegal'
       name: matchedProduct.product_name,
       message: matchedProduct.description || 'Status perizinan terverifikasi.',
       referenceImage: matchedProduct.image_url
     });
 
   } catch (err) {
-    console.error("Kesalahan server:", err);
-    return NextResponse.json({ error: 'Gagal memproses data server' }, { status: 500 });
+    return NextResponse.json({ 
+      status: 'ilegal', 
+      name: 'Server Error', 
+      message: err.message 
+    }, { status: 500 });
   }
 }
