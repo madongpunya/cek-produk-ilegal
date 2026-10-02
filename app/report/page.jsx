@@ -124,6 +124,7 @@ export default function ReportPage() {
               />
             </div>
 
+            {/* Kolom Input Nama Pelapor */}
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">Nama Pelapor (Opsional)</label>
               <input 

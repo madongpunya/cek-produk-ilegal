@@ -6,10 +6,12 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function POST(request) {
   try {
+    // 1. Mengambil data yang dikirimkan dari form (termasuk file dan teks)
     const formData = await request.formData();
     const productName = formData.get('productName');
     const location = formData.get('location');
     const description = formData.get('description');
+    const reporterName = formData.get('reporterName'); // Nama Pelapor
     const imageFile = formData.get('image');
 
     if (!supabaseUrl || !supabaseAnonKey) {
@@ -19,11 +21,11 @@ export async function POST(request) {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     let imageUrl = null;
 
-    // Jika ada file gambar yang diunggah
+    // 2. Proses unggah gambar ke Supabase Storage jika ada file yang dipilih
     if (imageFile && imageFile.size > 0) {
       const fileName = `${Date.now()}-${imageFile.name.replace(/\s+/g, '_')}`;
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('report-images')
         .upload(fileName, imageFile);
 
@@ -31,7 +33,7 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Gagal mengunggah gambar: ' + uploadError.message }, { status: 400 });
       }
 
-      // Ambil Public URL dari gambar yang diunggah
+      // Mengambil URL publik gambar yang baru saja diunggah
       const { data: publicUrlData } = supabase.storage
         .from('report-images')
         .getPublicUrl(fileName);
@@ -39,8 +41,7 @@ export async function POST(request) {
       imageUrl = publicUrlData.publicUrl;
     }
 
-    // Simpan data laporan beserta URL gambar ke tabel 'reports'
-    // Pastikan tabel Anda sudah memiliki kolom 'image_url' (tipe text)
+    // 3. Menyimpan seluruh data laporan ke tabel 'reports' di Supabase
     const { error: dbError } = await supabase
       .from('reports')
       .insert([
@@ -48,7 +49,9 @@ export async function POST(request) {
           product_name: productName, 
           location: location, 
           description: description,
-          image_url: imageUrl 
+          reporter_name: reporterName || 'Anonim', // Jika kosong, otomatis bernilai 'Anonim'
+          image_url: imageUrl,                      // Link foto bukti
+          created_at: new Date().toISOString()      // Waktu pelaporan saat ini
         }
       ]);
 
@@ -56,7 +59,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Gagal menyimpan ke database: ' + dbError.message }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, message: 'Laporan dan gambar berhasil disimpan!' });
+    return NextResponse.json({ success: true, message: 'Laporan, nama pelapor, waktu, dan foto berhasil dicatat ke database!' });
 
   } catch (err) {
     console.error("Kesalahan server:", err);
