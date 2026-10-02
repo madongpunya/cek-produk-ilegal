@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Camera, ArrowLeft, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertCircle, CheckCircle2, Search } from 'lucide-react';
 
 export default function ScanPage() {
   const videoRef = useRef(null);
@@ -10,8 +10,8 @@ export default function ScanPage() {
   const [imgDataUrl, setImgDataUrl] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Menyalakan kamera perangkat saat halaman dibuka
   useEffect(() => {
     async function setupCamera() {
       try {
@@ -28,7 +28,6 @@ export default function ScanPage() {
     }
     setupCamera();
 
-    // Cleanup: matikan stream kamera saat berpindah halaman
     return () => {
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject;
@@ -37,8 +36,7 @@ export default function ScanPage() {
     };
   }, []);
 
-  // Fungsi untuk mengambil foto dari video stream
-  const handleCapture = () => {
+  const handleCapture = async () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (video && canvas) {
@@ -49,44 +47,44 @@ export default function ScanPage() {
       const dataUrl = canvas.toDataURL('image/jpeg');
       setImgDataUrl(dataUrl);
 
-      // Simulasi proses analisis objek
-      simulateAnalysis();
+      await sendQueryToAPI();
     }
   };
 
-  // Simulasi analisis objek
-  const simulateAnalysis = () => {
+  const sendQueryToAPI = async () => {
     setScanning(true);
     setResult(null);
-    setTimeout(() => {
+
+    try {
+      const response = await fetch('/api/match-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ searchTerm })
+      });
+
+      const resData = await response.json();
+      setResult(resData);
+
+    } catch (err) {
+      console.error("Gagal memproses pemindaian:", err);
+      setResult({
+        status: 'ilegal',
+        name: 'Gagal Memindai',
+        message: 'Terjadi kendala saat menghubungkan ke server pencocokan.'
+      });
+    } finally {
       setScanning(false);
-      const isIllegal = Math.random() > 0.5;
-      if (isIllegal) {
-        setResult({
-          status: 'illegal',
-          name: 'Produk Tanpa Label / Indikasi Ilegal',
-          message: 'Terindikasi produk ilegal atau palsu. Nomor registrasi tidak valid dalam sistem.',
-          risk: 'Tinggi'
-        });
-      } else {
-        setResult({
-          status: 'legal',
-          name: 'Produk Terdaftar Resmi (Sampel)',
-          message: 'Produk terverifikasi aman dan memiliki izin edar resmi yang aktif.',
-          risk: 'Aman'
-        });
-      }
-    }, 2000);
+    }
   };
 
   const handleReset = () => {
     setImgDataUrl(null);
     setResult(null);
+    setSearchTerm('');
   };
 
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col">
-      {/* Top Bar */}
       <div className="p-4 flex items-center justify-between border-b border-slate-800">
         <Link href="/" className="inline-flex items-center gap-2 text-slate-300 hover:text-white">
           <ArrowLeft className="w-5 h-5" />
@@ -96,8 +94,22 @@ export default function ScanPage() {
         <div className="w-16"></div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-grow flex flex-col items-center justify-center p-4 max-w-md mx-auto w-full">
+      <div className="flex-grow flex flex-col items-center justify-center p-4 max-w-md mx-auto w-full space-y-4">
+        
+        {/* Kolom Input Teks untuk Konsistensi Pencarian */}
+        {!imgDataUrl && (
+          <div className="w-full bg-slate-800 p-3 rounded-xl border border-slate-700 flex items-center gap-2 shadow-md">
+            <Search className="w-5 h-5 text-slate-400 flex-shrink-0" />
+            <input 
+              type="text" 
+              placeholder="Ketik nama produk di database (cth: Minyak Gosok)" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-transparent text-sm text-white placeholder-slate-400 focus:outline-none"
+            />
+          </div>
+        )}
+
         {!imgDataUrl ? (
           <div className="relative w-full aspect-[3/4] bg-black rounded-2xl overflow-hidden shadow-2xl border border-slate-800 flex items-center justify-center">
             <video 
@@ -110,7 +122,6 @@ export default function ScanPage() {
               <span className="text-xs bg-black/60 text-white px-2 py-1 rounded">Arahkan ke kemasan produk</span>
             </div>
 
-            {/* Capture Button */}
             <div className="absolute bottom-6 left-0 right-0 flex justify-center">
               <button 
                 onClick={handleCapture}
@@ -127,16 +138,15 @@ export default function ScanPage() {
               {scanning && (
                 <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center space-y-3">
                   <RefreshCw className="w-10 h-10 text-red-500 animate-spin" />
-                  <p className="text-sm font-medium animate-pulse">Menganalisis objek produk...</p>
+                  <p className="text-sm font-medium animate-pulse">Memeriksa ke database Supabase...</p>
                 </div>
               )}
             </div>
 
-            {/* Result Box */}
             {!scanning && result && (
-              <div className={`w-full p-4 rounded-xl border ${result.status === 'illegal' ? 'bg-red-950/40 border-red-800 text-red-200' : 'bg-emerald-950/40 border-emerald-800 text-emerald-200'}`}>
+              <div className={`w-full p-4 rounded-xl border ${result.status === 'ilegal' ? 'bg-red-950/40 border-red-800 text-red-200' : 'bg-emerald-950/40 border-emerald-800 text-emerald-200'}`}>
                 <div className="flex items-start gap-3">
-                  {result.status === 'illegal' ? (
+                  {result.status === 'ilegal' ? (
                     <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
                   ) : (
                     <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0 mt-0.5" />
@@ -144,6 +154,12 @@ export default function ScanPage() {
                   <div>
                     <h3 className="font-bold text-base">{result.name}</h3>
                     <p className="text-xs mt-1 opacity-90">{result.message}</p>
+                    {result.referenceImage && (
+                      <div className="mt-2">
+                        <span className="text-[10px] uppercase tracking-wider opacity-75 block">Acuan Database:</span>
+                        <img src={result.referenceImage} alt="Ref" className="w-16 h-16 object-cover rounded mt-1 border border-slate-700" />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
