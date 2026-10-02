@@ -18,11 +18,14 @@ export async function POST(request) {
       });
     }
 
-    // Mengambil data dari tabel 'product' (tanpa 's') di Supabase
+    // Mengambil kata pertama dari input (misal: "Minyak" dari "Minyak Gosok Cap Bunga Kelor")
+    // agar pencarian di database lebih mudah cocok.
+    const keyword = searchTerm.trim().split(' ')[0];
+
     const { data: products, error } = await supabase
       .from('product')
       .select('*')
-      .ilike('product_name', `%${searchTerm.trim()}%`);
+      .ilike('product_name', `%${keyword}%`);
 
     if (error) {
       console.error("Supabase Error:", error);
@@ -44,7 +47,7 @@ export async function POST(request) {
     const matchedProduct = products[0];
 
     return NextResponse.json({
-      status: matchedProduct.status, // Sesuai data di database ('ilegal' atau 'legal')
+      status: matchedProduct.status,
       name: matchedProduct.product_name,
       message: matchedProduct.description || 'Status perizinan terverifikasi.',
       referenceImage: matchedProduct.image_url
