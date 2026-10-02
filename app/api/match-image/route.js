@@ -6,7 +6,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function POST(request) {
   try {
-    const { searchTerm } = await request.json();
+    const { searchTerm, imageBase64 } = await request.json();
 
     if (!supabaseUrl || !supabaseAnonKey) {
       return NextResponse.json({
@@ -18,7 +18,7 @@ export async function POST(request) {
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Ambil seluruh data dari tabel 'product' terlebih dahulu untuk diperiksa manual
+    // Ambil seluruh data produk dari Supabase
     const { data: products, error } = await supabase
       .from('product')
       .select('*');
@@ -31,36 +31,34 @@ export async function POST(request) {
       });
     }
 
-    if (!products || products.length === 0) {
+    // Jika kolom pencarian kosong atau tidak diisi saat memotret gelas/objek lain
+    if (!searchTerm || searchTerm.trim() === '') {
       return NextResponse.json({
         status: 'ilegal',
-        name: 'Tabel Kosong',
-        message: 'Tidak ada data sama sekali di dalam tabel product Supabase.'
+        name: 'Produk Tidak Dikenali / Ilegal',
+        message: 'Tidak ada kata kunci produk yang dimasukkan untuk verifikasi.'
       });
     }
 
-    // Jika pengguna mengetik kata kunci, lakukan pencarian yang fleksibel
-    let matchedProduct = null;
-    if (searchTerm && searchTerm.trim() !== '') {
-      const keyword = searchTerm.trim().toLowerCase();
-      matchedProduct = products.find(p => 
-        p.product_name && p.product_name.toLowerCase().includes(keyword)
-      );
-    } else {
-      // Jika kosong, ambil data pertama sebagai sampel
-      matchedProduct = products[0];
-    }
+    const keyword = searchTerm.trim().toLowerCase();
+    
+    // Cari produk yang benar-benar cocok dengan kata kunci
+    const matchedProduct = products.find(p => 
+      p.product_name && p.product_name.toLowerCase().includes(keyword)
+    );
 
+    // Jika kata kunci tidak cocok dengan database (misal memotret gelas tapi mengetik sembarangan atau kosong)
     if (!matchedProduct) {
       return NextResponse.json({
         status: 'ilegal',
-        name: 'Produk Tidak Ditemukan',
-        message: `Kata kunci "${searchTerm}" tidak cocok dengan data di database.`
+        name: 'Produk Tidak Terdaftar / Ilegal',
+        message: `Produk dengan kata kunci "${searchTerm}" tidak ditemukan di database resmi.`
       });
     }
 
+    // Jika cocok, kembalikan data status aslinya
     return NextResponse.json({
-      status: matchedProduct.status, // 'legal' atau 'ilegal'
+      status: matchedProduct.status,
       name: matchedProduct.product_name,
       message: matchedProduct.description || 'Status perizinan terverifikasi.',
       referenceImage: matchedProduct.image_url
