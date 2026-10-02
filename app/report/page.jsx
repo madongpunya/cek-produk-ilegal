@@ -2,134 +2,142 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Send, CheckCircle2, FileText } from 'lucide-react';
+import { ArrowLeft, Send, CheckCircle2 } from 'lucide-react';
 
 export default function ReportPage() {
-  const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
     productName: '',
     location: '',
     description: '',
     reporterName: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmitReport = async (e) => {
     e.preventDefault();
-    // Simulasi pengiriman data ke server/database
-    setSubmitted(true);
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setSuccess(true);
+        setFormData({ productName: '', location: '', description: '', reporterName: '' });
+      } else {
+        alert("Gagal mengirim laporan: " + result.error);
+      }
+    } catch (err) {
+      console.error("Terjadi kesalahan:", err);
+      alert("Gagal terhubung ke server.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col">
+    <div className="min-h-screen bg-slate-900 text-white flex flex-col">
       {/* Top Bar */}
-      <header className="bg-white shadow-sm border-b border-slate-100 py-4 px-6 flex justify-between items-center">
-        <Link href="/" className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium">
+      <div className="p-4 flex items-center justify-between border-b border-slate-800">
+        <Link href="/" className="inline-flex items-center gap-2 text-slate-300 hover:text-white">
           <ArrowLeft className="w-5 h-5" />
-          <span>Kembali ke Beranda</span>
+          <span>Kembali</span>
         </Link>
-        <span className="font-bold text-lg text-slate-900">Form Lapor Produk Ilegal</span>
-        <div className="w-24"></div>
-      </header>
+        <h1 className="font-semibold text-lg">Formulir Pengaduan Produk</h1>
+        <div className="w-16"></div>
+      </div>
 
-      {/* Main Form Content */}
-      <main className="max-w-xl mx-auto px-6 py-10 flex-grow w-full">
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-          {!submitted ? (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-                <div className="p-3 bg-red-50 text-red-600 rounded-xl">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="font-bold text-xl text-slate-900">Formulir Pengaduan Masyarakat</h2>
-                  <p className="text-xs text-slate-500">Laporkan temuan produk tanpa izin edar atau mencurigakan.</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Nama Produk / Merek</label>
-                <input 
-                  type="text" 
-                  name="productName"
-                  required
-                  value={formData.productName}
-                  onChange={handleChange}
-                  placeholder="Contoh: Kosmetik / Makanan Tanpa Label"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Lokasi Temuan (Nama Toko / Alamat)</label>
-                <input 
-                  type="text" 
-                  name="location"
-                  required
-                  value={formData.location}
-                  onChange={handleChange}
-                  placeholder="Contoh: Toko Berkah Jaya, Jl. Merdeka No. 10"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Keterangan / Alasan Kecurigaan</label>
-                <textarea 
-                  name="description"
-                  rows="4"
-                  required
-                  value={formData.description}
-                  onChange={handleChange}
-                  placeholder="Jelaskan kondisi fisik produk atau mengapa dicurigai ilegal..."
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm resize-none"
-                ></textarea>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Nama Pelapor (Opsional)</label>
-                <input 
-                  type="text" 
-                  name="reporterName"
-                  value={formData.reporterName}
-                  onChange={handleChange}
-                  placeholder="Nama Anda"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
-                />
-              </div>
-
-              <button 
-                type="submit"
-                className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-lg shadow-red-600/20 flex items-center justify-center gap-2 transition-all"
-              >
-                <Send className="w-5 h-5" />
-                Kirim Laporan
-              </button>
-            </form>
-          ) : (
-            <div className="text-center py-10 space-y-4">
-              <div className="inline-flex p-4 bg-emerald-50 text-emerald-600 rounded-full">
-                <CheckCircle2 className="w-12 h-12" />
-              </div>
-              <h2 className="text-2xl font-bold text-slate-900">Laporan Berhasil Terkirim!</h2>
-              <p className="text-sm text-slate-600 max-w-sm mx-auto">
-                Terima kasih atas partisipasi Anda dalam mengawasi peredaran produk. Laporan Anda telah dicatat oleh sistem.
-              </p>
-              <div className="pt-4">
-                <Link 
-                  href="/"
-                  className="inline-block px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-sm"
-                >
-                  Kembali ke Beranda
-                </Link>
-              </div>
+      {/* Main Content */}
+      <div className="flex-grow flex flex-col items-center justify-center p-4 max-w-md mx-auto w-full">
+        {success ? (
+          <div className="w-full bg-emerald-950/40 border border-emerald-800 p-6 rounded-2xl text-center space-y-4">
+            <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
+            <h2 className="font-bold text-lg text-emerald-200">Laporan Berhasil Terkirim!</h2>
+            <p className="text-sm text-slate-300">Terima kasih, laporan Anda telah tercatat secara permanen di dalam database pengawasan.</p>
+            <button 
+              onClick={() => setSuccess(false)}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-medium text-sm transition-colors"
+            >
+              Kirim Laporan Lain
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmitReport} className="w-full space-y-4 bg-slate-800/50 p-6 rounded-2xl border border-slate-800 shadow-xl">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Nama Produk Temuan</label>
+              <input 
+                type="text" 
+                name="productName"
+                required
+                placeholder="Contoh: Obat/Kosmetik/Makanan Ilegal" 
+                value={formData.productName}
+                onChange={handleChange}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500"
+              />
             </div>
-          )}
-        </div>
-      </main>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Lokasi Temuan / Toko</label>
+              <input 
+                type="text" 
+                name="location"
+                required
+                placeholder="Contoh: Pasar Sentral / Toko A" 
+                value={formData.location}
+                onChange={handleChange}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Keterangan / Alasan Kecurigaan</label>
+              <textarea 
+                name="description"
+                required
+                rows="3"
+                placeholder="Jelaskan kondisi fisik produk atau izin edarnya..." 
+                value={formData.description}
+                onChange={handleChange}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Nama Pelapor (Opsional)</label>
+              <input 
+                type="text" 
+                name="reporterName"
+                placeholder="Nama Anda / Anonim" 
+                value={formData.reporterName}
+                onChange={handleChange}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500"
+              />
+            </div>
+
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-red-600 hover:bg-red-500 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 mt-2"
+            >
+              <Send className="w-4 h-4" />
+              {loading ? 'Mengirim Laporan...' : 'Kirim Laporan'}
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
