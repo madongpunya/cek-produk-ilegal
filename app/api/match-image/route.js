@@ -8,37 +8,42 @@ const supabase = createClient(
 
 export async function POST(request) {
   try {
-    const { searchTerm } = await request.json();
+    const body = await request.json();
+    console.log("Data yang diterima dari frontend:", body); // Cek terminal VS Code nanti
 
-    // Jika tidak ada kata kunci yang dicari
-    if (!searchTerm) {
+    const searchTerm = body.searchTerm;
+
+    if (!searchTerm || searchTerm.trim() === '') {
       return NextResponse.json({
         status: 'ilegal',
-        name: 'Produk Tidak Dikenali',
-        message: 'Masukkan atau deteksi nama produk pada kemasan.'
+        name: 'Nama Produk Kosong',
+        message: 'Mohon ketik nama produk pada kolom pencarian.'
       });
     }
 
-    // Melakukan pencarian data secara konsisten berdasarkan kemiripan nama produk di Supabase
+    // Query ke tabel products di Supabase
     const { data: products, error } = await supabase
       .from('products')
       .select('*')
-      .ilike('product_name', `%${searchTerm}%`)
-      .limit(1);
+      .ilike('product_name', `%${searchTerm.trim()}%`);
 
-    if (error || !products || products.length === 0) {
+    if (error) {
+      console.error("Error dari Supabase:", error);
+      return NextResponse.json({ status: 'ilegal', name: 'Database Error', message: error.message });
+    }
+
+    if (!products || products.length === 0) {
       return NextResponse.json({
         status: 'ilegal',
-        name: 'Produk Tidak Terdaftar / Ilegal',
-        message: 'Produk ini tidak ditemukan di dalam database resmi pengawasan.'
+        name: 'Produk Tidak Ditemukan',
+        message: `Kata kunci "${searchTerm}" tidak ada di database.`
       });
     }
 
     const matchedProduct = products[0];
 
-    // Hasil akan konsisten sesuai dengan apa yang tersimpan di database untuk produk tersebut
     return NextResponse.json({
-      status: matchedProduct.status, // Konsisten 'legal' atau 'ilegal'
+      status: matchedProduct.status,
       name: matchedProduct.product_name,
       message: matchedProduct.description || 'Status perizinan terverifikasi.',
       referenceImage: matchedProduct.image_url
@@ -46,6 +51,6 @@ export async function POST(request) {
 
   } catch (err) {
     console.error("Kesalahan server:", err);
-    return NextResponse.json({ error: 'Gagal memproses data' }, { status: 500 });
+    return NextResponse.json({ error: 'Gagal memproses data server' }, { status: 500 });
   }
 }

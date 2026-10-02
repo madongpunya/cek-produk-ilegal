@@ -47,7 +47,7 @@ export default function ScanPage() {
       const dataUrl = canvas.toDataURL('image/jpeg');
       setImgDataUrl(dataUrl);
 
-      // Kirim nilai searchTerm yang sedang diketik secara langsung ke fungsi API
+      // Kirim nilai searchTerm saat ini langsung ke fungsi API
       await sendQueryToAPI(searchTerm);
     }
   };
@@ -97,7 +97,7 @@ export default function ScanPage() {
 
       <div className="flex-grow flex flex-col items-center justify-center p-4 max-w-md mx-auto w-full space-y-4">
         
-        {/* Kolom Input Teks */}
+        {/* Kolom Input Teks Pencarian */}
         {!imgDataUrl && (
           <div className="w-full bg-slate-800 p-3 rounded-xl border border-slate-700 flex items-center gap-2 shadow-md">
             <Search className="w-5 h-5 text-slate-400 flex-shrink-0" />
