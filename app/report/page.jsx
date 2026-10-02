@@ -9,6 +9,7 @@ export default function ReportPage() {
     productName: '',
     location: '',
     description: '',
+    reporterName: '',
     image: null
   });
   const [loading, setLoading] = useState(false);
@@ -32,6 +33,7 @@ export default function ReportPage() {
       dataToSend.append('productName', formData.productName);
       dataToSend.append('location', formData.location);
       dataToSend.append('description', formData.description);
+      dataToSend.append('reporterName', formData.reporterName);
       if (formData.image) {
         dataToSend.append('image', formData.image);
       }
@@ -45,7 +47,7 @@ export default function ReportPage() {
 
       if (response.ok) {
         setSuccess(true);
-        setFormData({ productName: '', location: '', description: '', image: null });
+        setFormData({ productName: '', location: '', description: '', reporterName: '', image: null });
       } else {
         alert("Gagal mengirim laporan: " + result.error);
       }
@@ -73,7 +75,7 @@ export default function ReportPage() {
           <div className="w-full bg-emerald-950/40 border border-emerald-800 p-6 rounded-2xl text-center space-y-4">
             <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
             <h2 className="font-bold text-lg text-emerald-200">Laporan Berhasil Terkirim!</h2>
-            <p className="text-sm text-slate-300">Laporan beserta foto bukti telah tercatat di database.</p>
+            <p className="text-sm text-slate-300">Laporan beserta nama pelapor dan foto bukti telah tercatat di database.</p>
             <button 
               onClick={() => setSuccess(false)}
               className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-medium text-sm transition-colors"
@@ -117,6 +119,18 @@ export default function ReportPage() {
                 rows="3"
                 placeholder="Jelaskan kondisi fisik produk atau izin edarnya..." 
                 value={formData.description}
+                onChange={handleChange}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Nama Pelapor (Opsional)</label>
+              <input 
+                type="text" 
+                name="reporterName"
+                placeholder="Nama Anda / Anonim" 
+                value={formData.reporterName}
                 onChange={handleChange}
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500"
               />
